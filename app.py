@@ -1,31 +1,36 @@
-import pandas as pd
 import streamlit as st
-from io import BytesIO
+import pandas as pd
 
-st.title("Name + RollNo Merger")
+st.title("Merge Name and Roll Number")
 
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
+# File uploader
+uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
-if uploaded_file is not None:
-    # Read uploaded Excel
-    df = pd.read_excel(uploaded_file, sheet_name="Sheet1_Students")
+if uploaded_file:
+    try:
+        # Read only Sheet1
+        df = pd.read_excel(uploaded_file, sheet_name="Sheet1")
+        
+        # Check if required columns exist
+        if "name" in df.columns and "rollno" in df.columns:
+            df["name_rollno"] = df["name"].astype(str) + " " + df["rollno"].astype(str)
+            result = df[["name_rollno"]]
 
-    # Merge name and roll no into one column
-    df["name_roll"] = df["name"].astype(str) + " " + df["roll no"].astype(str)
+            # Display result
+            st.write("✅ Merged Column:")
+            st.dataframe(result)
 
-    # Keep only merged column + department (optional)
-    # df = df[["name_roll", "department"]]
+            # Allow download
+            result_file = "merged_output.xlsx"
+            result.to_excel(result_file, index=False)
+            st.download_button(
+                label="Download Merged Excel",
+                data=open(result_file, "rb"),
+                file_name="merged_output.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.error("⚠️ 'name' and/or 'rollno' column not found in Sheet1")
 
-    # Save to memory
-    output = BytesIO()
-    df.to_excel(output, index=False)
-    output.seek(0)
-
-    st.download_button(
-        label="Download Updated Excel",
-        data=output,
-        file_name="merged_name_roll.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    st.success("File processed successfully ✅")
+    except Exception as e:
+        st.error(f"Error reading Excel file: {e}")
