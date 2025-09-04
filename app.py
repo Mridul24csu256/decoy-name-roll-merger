@@ -1,22 +1,37 @@
+import streamlit as st
 import openpyxl
+from io import BytesIO
 
-# 1. Load your Excel file
-file_name = 'your_file.xlsx'  # <-- Replace with your file name
-wb = openpyxl.load_workbook(file_name)
-sheet = wb.active  # Or wb['SheetName'] if you know the sheet
+st.title("Merge Name and Roll Columns in Excel")
 
-# 2. Find the first empty column to put merged data
-max_col = sheet.max_column
-new_col = max_col + 1  # next empty column
-sheet.cell(row=1, column=new_col).value = "Name_Roll"  # header
+# Upload Excel file
+uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+if uploaded_file:
+    # Load workbook
+    wb = openpyxl.load_workbook(uploaded_file)
+    sheet = wb.active  # default to first sheet
 
-# 3. Merge Name (A) and Roll (B) into the new column
-for row in range(2, sheet.max_row + 1):  # assuming row 1 is headers
-    name = sheet[f"A{row}"].value
-    roll = sheet[f"B{row}"].value
-    if name is not None and roll is not None:
-        sheet.cell(row=row, column=new_col).value = f"{name} {roll}"
+    # Find first empty column
+    max_col = sheet.max_column
+    new_col = max_col + 1
+    sheet.cell(row=1, column=new_col).value = "Name_Roll"
 
-# 4. Save the updated Excel file
-wb.save('your_file_merged.xlsx')
-print(f"Done! Merged column added as column {new_col} in 'your_file_merged.xlsx'.")
+    # Merge Name (A) and Roll (B)
+    for row in range(2, sheet.max_row + 1):
+        name = sheet[f"A{row}"].value
+        roll = sheet[f"B{row}"].value
+        if name is not None and roll is not None:
+            sheet.cell(row=row, column=new_col).value = f"{name} {roll}"
+
+    # Save workbook to memory
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Download button
+    st.download_button(
+        label="Download Merged Excel",
+        data=output,
+        file_name="merged_file.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
