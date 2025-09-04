@@ -1,17 +1,31 @@
 import pandas as pd
+import streamlit as st
+from io import BytesIO
 
-# Load your Excel file
-file_path = "filtered_attendance.xlsx"
-df = pd.read_excel(file_path, sheet_name="Sheet1_Students")
+st.title("Name + RollNo Merger")
 
-# Merge name and roll no into a new column with a space
-df["name_roll"] = df["name"].astype(str) + " " + df["roll no"].astype(str)
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
-# (Optional) If you want only the merged column + department:
-# df = df[["name_roll", "department"]]
+if uploaded_file is not None:
+    # Read uploaded Excel
+    df = pd.read_excel(uploaded_file, sheet_name="Sheet1_Students")
 
-# Save back to Excel
-output_file = "filtered_attendance_with_name_roll.xlsx"
-df.to_excel(output_file, index=False)
+    # Merge name and roll no into one column
+    df["name_roll"] = df["name"].astype(str) + " " + df["roll no"].astype(str)
 
-print("File saved as:", output_file)
+    # Keep only merged column + department (optional)
+    # df = df[["name_roll", "department"]]
+
+    # Save to memory
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+
+    st.download_button(
+        label="Download Updated Excel",
+        data=output,
+        file_name="merged_name_roll.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    st.success("File processed successfully ✅")
