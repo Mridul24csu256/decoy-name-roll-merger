@@ -1,42 +1,22 @@
-import streamlit as st
-import pandas as pd
+import openpyxl
 
-st.title("Merge Name and Roll Number from Excel")
+# 1. Load your Excel file
+file_name = 'your_file.xlsx'  # <-- Replace with your file name
+wb = openpyxl.load_workbook(file_name)
+sheet = wb.active  # Or wb['SheetName'] if you know the sheet
 
-# File uploader
-uploaded_file = st.file_uploader("Upload your Excel file (.xlsx)", type=["xlsx"])
+# 2. Find the first empty column to put merged data
+max_col = sheet.max_column
+new_col = max_col + 1  # next empty column
+sheet.cell(row=1, column=new_col).value = "Name_Roll"  # header
 
-if uploaded_file:
-    try:
-        # Read only Sheet1
-        df = pd.read_excel(uploaded_file, sheet_name="Sheet1")
-        
-        # Normalize column names to lowercase to avoid case issues
-        df.columns = [col.lower() for col in df.columns]
+# 3. Merge Name (A) and Roll (B) into the new column
+for row in range(2, sheet.max_row + 1):  # assuming row 1 is headers
+    name = sheet[f"A{row}"].value
+    roll = sheet[f"B{row}"].value
+    if name is not None and roll is not None:
+        sheet.cell(row=row, column=new_col).value = f"{name} {roll}"
 
-        # Check if required columns exist
-        if "name" in df.columns and "rollno" in df.columns:
-            # Merge columns
-            df["name_rollno"] = df["name"].astype(str) + " " + df["rollno"].astype(str)
-
-            # Keep only the merged column
-            result = df[["name_rollno"]]
-
-            # Display result
-            st.success("✅ Columns merged successfully!")
-            st.dataframe(result)
-
-            # Download button
-            result_file = "merged_output.xlsx"
-            result.to_excel(result_file, index=False)
-            st.download_button(
-                label="Download Merged Excel",
-                data=open(result_file, "rb"),
-                file_name="merged_output.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            st.error("⚠️ Columns 'name' and/or 'rollno' not found in Sheet1.")
-
-    except Exception as e:
-        st.error(f"Error reading Excel file: {e}")
+# 4. Save the updated Excel file
+wb.save('your_file_merged.xlsx')
+print(f"Done! Merged column added as column {new_col} in 'your_file_merged.xlsx'.")
